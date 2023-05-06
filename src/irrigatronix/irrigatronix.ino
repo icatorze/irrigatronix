@@ -76,6 +76,8 @@ uint32_t delayMS;
 unsigned long lastMeasure = 0;
 unsigned long lastMsg = 0;
 unsigned long lastIrrig = 0;
+uint8_t max_wait = 120;
+bool sentBootInfo = 0;
 
 // Set time via NTP, as required for x.509 validation
 void setClock() {
@@ -130,10 +132,16 @@ void connect() {
 
   WiFi.begin(WIFI_SSID, WIFI_PASS);
 
+  uint8_t count = 0;
+
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
     ESP.wdtFeed();
+    count++;
+    if (count > max_wait) {
+      ESP.restart();
+    }
   }
 
   // Validating  the SSL for for a secure connection you must
@@ -154,10 +162,15 @@ void connect() {
 
   device.connectSecure(wifiClient, LOSANT_ACCESS_KEY, LOSANT_ACCESS_SECRET);
 
+  count = 0;
   while(!device.connected()) {
     delay(500);
     Serial.print(".");
     ESP.wdtFeed();
+    count++;
+    if (count > max_wait) {
+      ESP.restart();
+    }
   }
 
   Serial.println("Connected!");
@@ -210,86 +223,94 @@ void loop() {
   static bool isTempVal = 0;
   static bool isHumiVal = 0;
 
-  bool toReconnectWIFI = false;
-  bool toReconnectLosant = false;
-
+  bool toReconnect = false;
   if(WiFi.status() != WL_CONNECTED) {
     Serial.println("Disconnected from WiFi");
-    toReconnectWIFI = true;
+    toReconnect = true;
   }
 
   if(!device.connected()) {
     Serial.println("Disconnected from Losant");
-    toReconnectLosant = true;
+    toReconnect = true;
   }
 
-  if(toReconnectWIFI){
-    WiFi.reconnect();
-  }
-
-  if(toReconnectLosant) {
+  if(toReconnect) {
+    delay(5000);
     connect();
   }
 
   device.loop();
 
-  unsigned long now = millis();
+  if(device.connected()){
+    unsigned long now = millis();
 
-  if (now - lastMeasure > delayMS) {
-    lastMeasure = now;
-    
-    sensors_event_t event;
-    dht.temperature().getEvent(&event);
-    if (!(isnan(event.temperature))){
-      temperature = event.temperature;
-      temperature *= mult;
-      isTempVal = 1;
-    }
-    else {
-      isTempVal = 0;
-    }
-    dht.humidity().getEvent(&event);
-    if (!(isnan(event.relative_humidity))){
-      humidity = event.relative_humidity;
-      humidity *= mult;
-      isHumiVal = 1;
-    }
-    else {
-      isHumiVal = 0;
-    }
-    if (isTempVal & isHumiVal) {
-      Serial.println(temperature);
-      Serial.println(humidity);
-    }
-    else {
-      Serial.println(F("DHT22 Sensor Fail"));
-    }
-    
-  }
-
-  if (now - lastMsg > 60000) {
-    lastMsg = now;
-    if (isTempVal & isHumiVal) {
+    if (!sentBootInfo) {
+      sentBootInfo = 1;
       StaticJsonDocument<200> jsonBuffer;
       JsonObject state = jsonBuffer.to<JsonObject>();
-      state["temp"] = int(temperature);
-      state["humi"] = int(humidity);
-      // Send the state to Losant.
-      device.sendState(state); 
+      state["rstcause"] = String(ESP.getResetReason());
+      state["freeheap"] = int(ESP.getFreeHeap());
+      device.sendState(state);
     }
-  }
 
-  if (isIrrigating) {
-    if (now - lastIrrig > 30000) {
-      lastIrrig = now;
-      isIrrigating = false;
-      digitalWrite(RELAY_PIN, HIGH);
-      pinMode(RELAY_PIN, INPUT);
+    if (now - lastMeasure > delayMS) {
+      lastMeasure = now;
+      
+      sensors_event_t event;
+      dht.temperature().getEvent(&event);
+      if (!(isnan(event.temperature))){
+        temperature = event.temperature;
+        temperature *= mult;
+        isTempVal = 1;
+      }
+      else {
+        isTempVal = 0;
+      }
+      dht.humidity().getEvent(&event);
+      if (!(isnan(event.relative_humidity))){
+        humidity = event.relative_humidity;
+        humidity *= mult;
+        isHumiVal = 1;
+      }
+      else {
+        isHumiVal = 0;
+      }
+      if (isTempVal & isHumiVal) {
+        Serial.println(temperature);
+        Serial.println(humidity);
+      }
+      else {
+        Serial.println(F("DHT22 Sensor Fail"));
+      }
+      
+    }
 
+    if (now - lastMsg > 60000) {
+      lastMsg = now;
+      uint8_t rssi = WiFi.RSSI();
+      if (isTempVal & isHumiVal) {
+        StaticJsonDocument<200> jsonBuffer;
+        JsonObject state = jsonBuffer.to<JsonObject>();
+        state["temp"] = int(temperature);
+        state["humi"] = int(humidity);
+        state["rssi"] = int8_t(rssi);
+        // Send the state to Losant.
+        device.sendState(state); 
+      }
+    }
+
+    if (isIrrigating) {
+      if (now - lastIrrig > 30000) {
+        lastIrrig = now;
+        isIrrigating = false;
+        digitalWrite(RELAY_PIN, HIGH);
+        pinMode(RELAY_PIN, INPUT);
+
+      }
     }
   }
 
   ESP.wdtFeed();
 
-  delay(100);
+  delay(200);
 }
