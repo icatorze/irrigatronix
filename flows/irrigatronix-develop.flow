@@ -1,0 +1,417 @@
+{
+  "_exportDate": "2023-05-07T13:04:48.931Z",
+  "_type": "flow",
+  "applicationId": "5ef8d749f777f40006155446",
+  "customNodeVersions": [
+  ],
+  "customNodes": [
+  ],
+  "description": "",
+  "enabled": true,
+  "flowClass": "cloud",
+  "globals": [
+  ],
+  "id": "644d205007d13a485465d239",
+  "name": "Irrigatronix",
+  "nodes": [
+    {
+      "config": {
+        "level": "verbose",
+        "message": "",
+        "property": ""
+      },
+      "id": "0nWn6oYYqn",
+      "meta": {
+        "category": "debug",
+        "description": "",
+        "label": "Debug",
+        "name": "debug",
+        "x": 360,
+        "y": 540
+      },
+      "outputIds": [
+      ],
+      "type": "DebugNode"
+    },
+    {
+      "config": {
+        "scopePath": "",
+        "script": "var temperature = payload.data.temp/1000.;\nvar humidity = payload.data.humi/1000.;\nvar kelvin = temperature + 273;\nvar eTs = Math.pow(10,((-2937.4 /kelvin)-4.9283* Math.log(kelvin)/Math.log(10) +23.5471));\nvar eTd = eTs * humidity /100;\nvar hx = Math.round(temperature + ((eTd-10)*5/9));\n\npayload.data.humidex = hx;\n\n"
+      },
+      "id": "8XMC8zpwJT",
+      "meta": {
+        "category": "logic",
+        "description": "",
+        "label": "Humidex Function",
+        "name": "function",
+        "x": 600,
+        "y": 280
+      },
+      "outputIds": [
+        [
+          "RiIR3mcfXu",
+          "0nWn6oYYqn"
+        ]
+      ],
+      "type": "RawFunctionNode"
+    },
+    {
+      "config": {
+        "attrDataMethod": "individualFields",
+        "attrInfos": [
+          {
+            "key": "freeheap",
+            "valueTemplate": ""
+          },
+          {
+            "key": "humi",
+            "valueTemplate": "{{data.humi}}"
+          },
+          {
+            "key": "humidex",
+            "valueTemplate": "{{data.humidex}}"
+          },
+          {
+            "key": "isIrrigating",
+            "valueTemplate": ""
+          },
+          {
+            "key": "lastIrrigation",
+            "valueTemplate": ""
+          },
+          {
+            "key": "rssi",
+            "valueTemplate": "{{data.rssi}}"
+          },
+          {
+            "key": "rstcause",
+            "valueTemplate": ""
+          },
+          {
+            "key": "temp",
+            "valueTemplate": "{{data.temp}}"
+          }
+        ],
+        "deviceId": "5ef8d749f777f40006155448",
+        "deviceIdTemplateType": "stringTemplate",
+        "resultPath": "",
+        "timeSourceType": "payloadTime"
+      },
+      "id": "dJadhP1NTz",
+      "meta": {
+        "category": "output",
+        "description": "",
+        "label": "Device: State",
+        "name": "device-state",
+        "x": 600,
+        "y": 500
+      },
+      "outputIds": [
+      ],
+      "type": "DeviceChangeStateNode"
+    },
+    {
+      "config": {
+        "expression": "{{relayType}} == \"device\""
+      },
+      "id": "RiIR3mcfXu",
+      "meta": {
+        "category": "logic",
+        "description": "",
+        "label": "Conditional",
+        "name": "conditional",
+        "x": 600,
+        "y": 380
+      },
+      "outputIds": [
+        [
+        ],
+        [
+          "dJadhP1NTz"
+        ]
+      ],
+      "type": "ConditionalNode"
+    },
+    {
+      "config": {
+        "nameTemplate": "irrigar",
+        "payloadTemplate": "irrigar",
+        "payloadTemplateType": "path",
+        "sendToDeviceIds": [
+          "5ef8d749f777f40006155448"
+        ],
+        "sendToDeviceTags": [
+        ]
+      },
+      "id": "5T2RQmg121",
+      "meta": {
+        "category": "output",
+        "description": "",
+        "deviceSelectionType": "direct",
+        "label": "Device: Command",
+        "name": "device-command",
+        "x": 160,
+        "y": 180
+      },
+      "outputIds": [
+      ],
+      "type": "DeviceSendCommandNode"
+    },
+    {
+      "config": {
+        "attrDataMethod": "individualFields",
+        "attrInfos": [
+          {
+            "key": "humi",
+            "valueTemplate": ""
+          },
+          {
+            "key": "humidex",
+            "valueTemplate": ""
+          },
+          {
+            "key": "isIrrigating",
+            "valueTemplate": ""
+          },
+          {
+            "key": "lastIrrigation",
+            "valueTemplate": "{{time}}"
+          },
+          {
+            "key": "temp",
+            "valueTemplate": ""
+          }
+        ],
+        "deviceId": "5ef8d749f777f40006155448",
+        "deviceIdTemplateType": "stringTemplate",
+        "resultPath": "",
+        "timeSourceType": "payloadTime"
+      },
+      "id": "dmEpbFtfzm",
+      "meta": {
+        "category": "output",
+        "description": "",
+        "label": "Device: State",
+        "name": "device-state",
+        "x": 380,
+        "y": 380
+      },
+      "outputIds": [
+      ],
+      "type": "DeviceChangeStateNode"
+    },
+    {
+      "config": {
+        "expression": "{{divide data.temp 1000}}>28 || {{divide data.humi 1000}}<60"
+      },
+      "id": "MXN27WnDCg",
+      "meta": {
+        "category": "logic",
+        "description": "",
+        "label": "temp > 28 and humi < 60",
+        "name": "conditional",
+        "x": 840,
+        "y": 180
+      },
+      "outputIds": [
+        [
+        ],
+        [
+          "Y6AJ9aJG7n"
+        ]
+      ],
+      "type": "ConditionalNode"
+    },
+    {
+      "config": {
+        "bodyTemplate": "<!doctype html>\n<html>\n  <head>\n    <title></title>\n    <meta name=\"viewport\" content=\"width=device-width\" />\n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n  </head>\n  <body>\n    <div><b>Irrigatron detectou uma condição extrema</b></div>\n    <div> Temperatura: {{divide data.temp 1000}}°C</div>\n    <div> Umidade:     {{divide data.humi 1000}}%</div>\n    \n    <div> Será necessária alguma ação. </div>\n\n  </body>\n</html>\n",
+        "fromTemplate": "",
+        "resultPath": "",
+        "subjectTemplate": "Irrigatron Alerta",
+        "toAddresses": [
+          "jack@icatorze.com.br"
+        ]
+      },
+      "id": "lwcWHPFdJZ",
+      "meta": {
+        "category": "output",
+        "description": "",
+        "label": "Email",
+        "name": "structure-email",
+        "x": 840,
+        "y": 400
+      },
+      "outputIds": [
+      ],
+      "type": "StructureEmailNode"
+    },
+    {
+      "config": {
+        "ratePerMinute": 0.016666666666666666,
+        "throttleIdTemplate": "",
+        "timeSincePath": ""
+      },
+      "id": "Y6AJ9aJG7n",
+      "meta": {
+        "category": "logic",
+        "description": "",
+        "label": "Throttle",
+        "name": "throttle",
+        "rateUnit": "Hour",
+        "rateValue": "1",
+        "x": 840,
+        "y": 280
+      },
+      "outputIds": [
+        [
+        ],
+        [
+          "lwcWHPFdJZ"
+        ]
+      ],
+      "type": "ThrottleNode"
+    },
+    {
+      "config": {
+        "expression": "{{data.temp}} && {{data.humi}}"
+      },
+      "id": "7LY3PtlolM",
+      "meta": {
+        "category": "logic",
+        "description": "",
+        "label": "temp && humi",
+        "name": "conditional",
+        "x": 600,
+        "y": 180
+      },
+      "outputIds": [
+        [
+        ],
+        [
+          "8XMC8zpwJT"
+        ]
+      ],
+      "type": "ConditionalNode"
+    },
+    {
+      "config": {
+        "expression": "{{data.isIrrigating}} === true"
+      },
+      "id": "HvOJnrjysO",
+      "meta": {
+        "category": "logic",
+        "description": "",
+        "label": "isIrrigating",
+        "name": "conditional",
+        "x": 380,
+        "y": 180
+      },
+      "outputIds": [
+        [
+        ],
+        [
+          "tmkwvMgzPU"
+        ]
+      ],
+      "type": "ConditionalNode"
+    },
+    {
+      "config": {
+        "expression": "{{relayType}} == \"device\""
+      },
+      "id": "tmkwvMgzPU",
+      "meta": {
+        "category": "logic",
+        "description": "",
+        "label": "Conditional",
+        "name": "conditional",
+        "x": 380,
+        "y": 280
+      },
+      "outputIds": [
+        [
+        ],
+        [
+          "dmEpbFtfzm"
+        ]
+      ],
+      "type": "ConditionalNode"
+    }
+  ],
+  "triggers": [
+    {
+      "config": {
+        "batchBehavior": "each",
+        "triggerOn": "both"
+      },
+      "key": "5ef8d749f777f40006155448",
+      "meta": {
+        "category": "trigger",
+        "description": "",
+        "label": "Device: State",
+        "name": "deviceIdsTags",
+        "uiId": "weUGxLah8c",
+        "x": 600,
+        "y": 60
+      },
+      "outputIds": [
+        [
+          "MXN27WnDCg",
+          "7LY3PtlolM",
+          "HvOJnrjysO"
+        ]
+      ],
+      "type": "deviceId"
+    },
+    {
+      "config": {
+      },
+      "key": "644d205007d13a485465d239-Rs7aWNdQcF5ieesnEEUeG",
+      "meta": {
+        "category": "trigger",
+        "description": "",
+        "label": "Virtual Button",
+        "name": "virtualButton",
+        "payload": "",
+        "uiId": "wXU55wlyj6",
+        "x": 360,
+        "y": 60
+      },
+      "outputIds": [
+        [
+          "5T2RQmg121"
+        ]
+      ],
+      "type": "virtualButton"
+    },
+    {
+      "config": {
+        "cron": "0 0 21 * * 1,3,6",
+        "tz": "America/Sao_Paulo"
+      },
+      "key": "644d205007d13a485465d239-Npl_ra5RpHWKdWW_DmxBk",
+      "meta": {
+        "category": "trigger",
+        "description": "",
+        "label": "Irrigar a cada 2 dias",
+        "name": "timer",
+        "timeAt": "21:00",
+        "timerTypeSelect": "cronWeekly",
+        "uiId": "GiU4bQsbGi",
+        "weekdays": [
+          1,
+          3,
+          6
+        ],
+        "x": 140,
+        "y": 60
+      },
+      "outputIds": [
+        [
+          "5T2RQmg121"
+        ]
+      ],
+      "type": "timer"
+    }
+  ]
+}
